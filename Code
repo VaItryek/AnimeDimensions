@@ -1,0 +1,180 @@
+repeat wait() until game:IsLoaded()
+-- Auto farm module made by Jiren. You can use in most games
+
+getgenv().FarmN = true -- Enable/Disable
+getgenv().TWSpeed = 200 -- Tween speed (The Higher the Faster, the Lower the Slower)
+getgenv().AutoFarmModule = {
+    Bot, -- Return bot
+    GetWork = game.Workspace.Folders.Monsters, -- Workspace path
+    GetMode = 1, -- 1 = GetChildren(), 2 = GetDescendants()
+    FarmMode = 2, -- 1 = Behind, 2 = Under, 3 = Over
+    Distance = 7, -- Distance
+    Checker = function(noob)
+        return noob:FindFirstChild("HumanoidRootPart") and noob:FindFirstChild("Monster").Health > 0 and noob:FindFirstChild("EnemyHealthBarGui") and noob ~= nil
+    end,
+    BotHum = function(noob)
+        return noob.HumanoidRootPart 
+    end,
+    CheckDistance = 1000, -- Stop teleport if distance is over
+    IsTweening = true, -- Return true if tweening
+    TweenCompleted = function()
+       -- Check if tween completed
+       IsTweening = false
+    end,
+    -- Custom functions
+    HideName = spawn(function()
+        while getgenv().FarmN do wait()
+            pcall(function()
+                game.Workspace.Folders.Players[game.Players.LocalPlayer.Name].Head.PlayerHealthBarGui:Destroy()
+            end)
+        end
+    end),
+    AutoRetry = spawn(function()
+        while getgenv().FarmN do wait()
+            pcall(function()
+                local Retry = "RetryDungeon"
+                local Event = game:GetService("ReplicatedStorage").RemoteEvents.MainRemoteEvent
+                Event:FireServer(Retry)
+            end)
+        end
+    end),
+    AutoPunch = spawn(function()
+        local count = 1      
+        repeat wait() until AutoFarmModule.Bot
+        local UseSkill = "UseSkill"
+        local Keylist = {1, 2, 3, 4}
+        while getgenv().FarmN do wait(0.1)
+            pcall(function()
+                local Local = game.Players.LocalPlayer.Character.HumanoidRootPart
+                local RandomAttack = Keylist[math.random(1, #Keylist)]
+                local NoobTable = {
+                    ["hrpCFrame"] = Local.CFrame - Local.CFrame.lookVector * -AutoFarmModule.Distance, 
+                    ["attackNumber"] = RandomAttack
+                }
+                local BasicOfBasic = "BasicAttack"
+                local Event = game:GetService("ReplicatedStorage").RemoteEvents.MainRemoteEvent
+                Event:FireServer(UseSkill, NoobTable, BasicOfBasic)
+            end)
+        end
+    end),
+    AutoSkill = spawn(function()
+        local PressSkillKey = function(key)
+            local VIM = game:GetService("VirtualInputManager")
+            VIM:SendKeyEvent(true, Enum.KeyCode[key], false, game)
+            wait()
+            VIM:SendKeyEvent(false, Enum.KeyCode[key], false, game)
+        end
+        --https://developer.roblox.com/en-us/api-reference/enum/KeyCode -- All keys chere, If you want to make a script with auto press 
+        while getgenv().FarmN do wait()
+            pcall(function()
+                if not IsTweening then 
+                    local Keylist = {"One", "Two", "Three", "Four"}
+                    local Randomskill = Keylist[math.random(1, #Keylist)]
+                    PressSkillKey(Randomskill)
+                end
+            end)
+        end
+    end),
+    CheckSukunaDistance = spawn(function()
+        while getgenv().FarmN do wait()
+            pcall(function()
+                local sukuna = AutoFarmModule.Bot
+                local checkdist = (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - sukuna.HumanoidRootPart.Position).Magnitude
+                if checkdist > AutoFarmModule.CheckDistance and sukuna.Name == "King of Curses" then
+                    local TpCircle = game.Workspace.GameMap["Curse Dimension"].CurseTeleportCircle
+                    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(TpCircle.Position)
+                end 
+            end)
+        end
+    end),
+}
+
+-- Yes
+
+function RenderWait()
+    return game:GetService("RunService").RenderStepped:Wait()
+end
+
+function GetBot(Child, Mode)
+    local getChild
+    if Mode == 1 then
+        getChild = Child:GetChildren()
+    elseif Mode == 2 then
+        getChild = Child:GetDescendants()
+    end
+    local Dist, Bot = math.huge
+    for i = 1,#getChild do 
+        local v = getChild[i]
+        local DistFromChar = game.Players.LocalPlayer:DistanceFromCharacter(AutoFarmModule.BotHum(v).Position)
+        if DistFromChar < Dist and AutoFarmModule.Checker(v) then
+            Dist = DistFromChar
+            Bot = v
+        end
+    end
+    return Bot
+end
+
+function SpawnPcall(f)
+    spawn(function()
+        pcall(f)()
+    end)
+end
+
+function Tween(pos, targetPos, targetCFrame)
+    if pos == "Hum" then
+        pos = game:GetService("Players").LocalPlayer.Character:FindFirstChild("HumanoidRootPart").Position
+    end
+    local tween_s = game:service"TweenService"
+    local info = TweenInfo.new((targetPos - pos).Magnitude/TWSpeed, Enum.EasingStyle.Linear)
+    local checkdist = (pos - targetPos).Magnitude
+    if checkdist > AutoFarmModule.CheckDistance then
+        return
+    end 
+    local tween, err = pcall(function()
+        local tween = tween_s:Create(game:GetService("Players").LocalPlayer.Character["HumanoidRootPart"], info, {CFrame = targetCFrame})
+        tween:Play()
+        tween.Completed:Wait()
+        AutoFarmModule.TweenCompleted();  
+    end)
+    if not tween then 
+        return err 
+    end
+end
+
+function AutoFarmer(Mode, Dist)
+    local Distance
+    local Noob = GetBot(AutoFarmModule.GetWork, AutoFarmModule.GetMode)
+    AutoFarmModule.Bot = GetBot(AutoFarmModule.GetWork, AutoFarmModule.GetMode)
+    if AutoFarmModule.FarmMode == 1 then
+        Distance = Dist 
+        AutoFarmModule.IsTweening = true
+        Tween("Hum", AutoFarmModule.BotHum(Noob).Position, AutoFarmModule.BotHum(Noob).Crame - AutoFarmModule.BotHum(Noob).CFrame.lookVector * Distance)
+    elseif AutoFarmModule.FarmMode == 2 then
+        Distance = -Dist
+        AutoFarmModule.IsTweening = true
+        Tween("Hum", AutoFarmModule.BotHum(Noob).Position, AutoFarmModule.BotHum(Noob).CFrame * CFrame.Angles(math.rad(Distance > 0 and -90 or 90),0,0) + Vector3.new(0,Distance,0))
+    elseif AutoFarmModule.FarmMode == 3 then
+        Distance = Dist
+        AutoFarmModule.IsTweening = true
+        Tween("Hum", AutoFarmModule.BotHum(Noob).Position, AutoFarmModule.BotHum(Noob).CFrame * CFrame.Angles(math.rad(Distance > 0 and -90 or 90),0,0) + Vector3.new(0,Distance,0))
+    end
+end
+
+spawn(function()
+    while getgenv().FarmN do RenderWait()
+        pcall(function()
+            AutoFarmer(AutoFarmModule.FarmMode, AutoFarmModule.Distance)
+        end)
+    end
+end)
+
+spawn(function()
+    game:GetService("RunService"):UnbindFromRenderStep("NoclipHoHoHo")
+    if getgenv().FarmN then
+        game:GetService("RunService"):BindToRenderStep("NoclipHoHoHo",0,function()
+            if not getgenv().FarmN then return end
+            if not game.Players.LocalPlayer.Character:findFirstChildOfClass("Humanoid") then return end
+            game.Players.LocalPlayer.Character:findFirstChildOfClass("Humanoid"):ChangeState(11)
+        end)
+    end
+end)
